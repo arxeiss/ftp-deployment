@@ -23,6 +23,7 @@ class CliRunner
 		'include' => '',
 		'ignore' => '',
 		'allowdelete' => true,
+		'alwaysrunactions' => false,
 		'purge' => '',
 		'before' => '',
 		'afterupload' => '',
@@ -147,6 +148,7 @@ class CliRunner
 		$deployment->ignoreMasks = array_merge($this->ignoreMasks, self::toArray($config['ignore']));
 		$deployment->deploymentFile = empty($config['deploymentfile']) ? $deployment->deploymentFile : $config['deploymentfile'];
 		$deployment->allowDelete = $config['allowdelete'];
+		$deployment->alwaysRunActions = $config['alwaysrunactions'];
 		$deployment->toPurge = self::toArray($config['purge'], true);
 		$deployment->runBefore = self::toArray($config['before'], true);
 		$deployment->runAfterUpload = self::toArray($config['afterupload'], true);

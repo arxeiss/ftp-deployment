@@ -33,6 +33,9 @@ class Deployer
 	/** @var bool */
 	public $allowDelete = false;
 
+	/** @var bool Ignore Already synchronized*/
+	public $alwaysRunActions = false;
+
 	/** @var string[] relative paths */
 	public $toPurge = [];
 
@@ -120,7 +123,9 @@ class Deployer
 
 		if (!$toUpload && !$toDelete) {
 			$this->logger->log('Already synchronized.', 'lime');
-			return;
+			if (!$this->alwaysRunActions) {
+				return;
+			}
 
 		} elseif ($this->testMode) {
 			$this->logger->log("\nUploading:\n" . implode("\n", $toUpload), 'green', false);
@@ -144,13 +149,12 @@ class Deployer
 		if ($toUpload) {
 			$this->logger->log("\nUploading:");
 			$this->uploadPaths($toUpload);
-			if ($this->runAfterUpload) {
-				$this->logger->log("\nAfter-upload-jobs:");
-				$this->runJobs($this->runAfterUpload);
-			}
+			$this->runAfterUploadJobs();
 			$this->logger->log("\nRenaming:");
 			$this->renamePaths($toUpload);
 			unlink($deploymentFile);
+		}else if($this->alwaysRunActions){
+			$this->runAfterUploadJobs();
 		}
 
 		if ($toDelete) {
@@ -176,6 +180,17 @@ class Deployer
 
 		$this->logger->log("\nDeleting remote file $this->deploymentFile.running");
 		$this->server->removeFile($runningFile);
+	}
+
+
+	/**
+	 * Run after-upload jobs
+	 */
+	private function runAfterUploadJobs(){
+		if ($this->runAfterUpload) {
+			$this->logger->log("\nAfter-upload-jobs:");
+			$this->runJobs($this->runAfterUpload);
+		}
 	}
 
 
