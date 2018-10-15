@@ -1,0 +1,79 @@
+#!/usr/bin/env php
+<?php
+
+/////////////////////////
+// Phar generator init //
+// with CLI arguments  //
+/////////////////////////
+
+ini_set("phar.readonly", 0);
+if (ini_get("phar.readonly") != 0) {
+    die("Cannot change phar.readonly mode - change it in 'php.ini' file");
+}
+
+include 'src/Deployment/CommandLine.php';
+
+$cmd = new Deployment\CommandLine(<<<'XX'
+
+Build of custom FTP Deployment
+-------------------
+Usage:
+    generatePhar [--file=deployment.phar] [-c | --compress]
+
+Options:
+    -c | --compress   Compress files in generated phar
+    --file=<name>     Name of generated phar file
+    -h | --help       Show help
+XX
+);
+
+$options = $cmd->parse();
+if ($options['--help']) {
+    echo $cmd->help();
+    return;
+}
+$pharFile = $options['--file'] ?? 'deployment.phar';
+$compress = (bool)$options['--compress'];
+// Remove old phar
+if (file_exists($pharFile)) { unlink($pharFile); }
+
+
+////////////////////////////////////
+// Create phar with given name    //
+// and with or withou compression //
+////////////////////////////////////
+
+echo ($compress ? "Compressed file" : "File")." {$pharFile} will be created\n";
+
+$phar = new Phar($pharFile);
+$phar->startBuffering(); // Needed for custom STUB
+
+$phar->buildFromDirectory("src", '/\.php$/');
+if ($compress) {
+    $phar->compressFiles(Phar::GZ);
+}
+
+// Create basic custom STUB with deployment.php as entry point
+$defaultStub = $defaultStub = <<<'EOF'
+#!/usr/bin/env php
+<?php
+/*
+ *   !!!  ATTENTION  !!!
+ *
+ * This is file contains custom modifications of FTP-Deployment
+ * More about modifications: https://github.com/arxeiss/ftp-deployment
+ *
+ * Original can be found here: https://github.com/dg/ftp-deployment
+ *
+ */
+
+Phar::mapPhar();
+include 'phar://'.__FILE__.'/deployment.php';
+
+__HALT_COMPILER();
+EOF;
+$phar->setStub($defaultStub);
+
+$phar->stopBuffering();
+
+echo "Creation of {$pharFile} was successfull";

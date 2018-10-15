@@ -4,4 +4,4 @@
 /tests/output
 /temp
 *.sublime-*
-composer.phar
+*.phar

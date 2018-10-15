@@ -4,6 +4,8 @@ See original from David Grudl on [https://github.com/dg/ftp-deployment](https://
 
 ---
 
+To get own `*.phar` file, use command `php generatePhar`. Possible options are `--compress`, `--file=myDeployment.phar` and finally `--help`.
+
 ## Custom changes
 Sometimes I want to add custom changes, which is not merged into original repo for any reason.<br>
 Full documentation is available in the link above, here are only changes.
