@@ -22,6 +22,7 @@ class CliRunner
 		'passivemode' => true,
 		'include' => '',
 		'ignore' => '',
+		'ignoreTracked' => '',
 		'allowdelete' => true,
 		'alwaysrunactions' => false,
 		'purge' => '',
@@ -146,6 +147,7 @@ class CliRunner
 
 		$deployment->includeMasks = self::toArray($config['include'], true);
 		$deployment->ignoreMasks = array_merge($this->ignoreMasks, self::toArray($config['ignore']));
+		$deployment->ignoreTrackedMasks = self::toArray($config['ignoretracked']);
 		$deployment->deploymentFile = empty($config['deploymentfile']) ? $deployment->deploymentFile : $config['deploymentfile'];
 		$deployment->allowDelete = $config['allowdelete'];
 		$deployment->alwaysRunActions = $config['alwaysrunactions'];

@@ -27,6 +27,9 @@ class Deployer
 	/** @var string[] */
 	public $ignoreMasks = [];
 
+	/** @var string[] */
+	public $ignoreTrackedMasks = [];
+
 	/** @var bool */
 	public $testMode = false;
 
@@ -108,6 +111,7 @@ class Deployer
 			$this->logger->log("Remote $this->deploymentFile file not found");
 			$remotePaths = [];
 		}
+		$ignoredRemoteTracked = $this->inPlceFilterRemotePaths($remotePaths);
 
 		$this->logger->log("Scanning files in $this->localDir");
 		$localPaths = $this->collectPaths();
@@ -117,7 +121,7 @@ class Deployer
 		$toUpload = array_keys(array_diff_assoc($localPaths, $remotePaths));
 
 		if ($localPaths !== $remotePaths) { // ignores allowDelete
-			$deploymentFile = $this->writeDeploymentFile($localPaths);
+			$deploymentFile = $this->writeDeploymentFile($localPaths + $ignoredRemoteTracked);
 			$toUpload[] = "/$this->deploymentFile"; // must be last
 		}
 
@@ -336,6 +340,10 @@ class Deployer
 			if ($entry == '.' || $entry == '..') {
 				continue;
 
+			} elseif (Helpers::matchMask($short, $this->ignoreTrackedMasks, is_dir($path))) {
+				$this->logger->log(str_pad("Ignoring tracked .$short", 40), 'gray');
+				continue;
+
 			} elseif (Helpers::matchMask($short, $this->ignoreMasks, is_dir($path))) {
 				$this->logger->log(str_pad("Ignoring .$short", 40), 'gray');
 				continue;
@@ -354,6 +362,28 @@ class Deployer
 		}
 		$iterator->close();
 		return $list;
+	}
+
+
+	/**
+	 * Filter in place all paths that are in ignoreTrackedMasks
+	 *
+	 * @param  array &$remotePaths All remote paths to be filtered in place, array is changing
+	 * @return array               All filtered paths
+	 */
+	private function inPlceFilterRemotePaths(&$remotePaths)
+	{
+		$ignoringTracked = [];
+		if (empty($this->ignoreTrackedMasks)) {
+			return [];
+		}
+		foreach ($remotePaths as $file => $hash) {
+			if (Helpers::matchMask($file, $this->ignoreTrackedMasks, substr($file, -1) === '/')) {
+				$ignoringTracked[$file] = $hash;
+				unset($remotePaths[$file]);
+			}
+		}
+		return $ignoringTracked;
 	}
 
 
