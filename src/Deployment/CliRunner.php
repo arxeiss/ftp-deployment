@@ -22,7 +22,7 @@ class CliRunner
 		'passivemode' => true,
 		'include' => '',
 		'ignore' => '',
-		'ignoreTracked' => '',
+		'ignoretracked' => '',
 		'allowdelete' => true,
 		'alwaysrunactions' => false,
 		'purge' => '',
