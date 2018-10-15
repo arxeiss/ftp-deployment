@@ -198,7 +198,10 @@ class CliRunner
 	{
 		$cmd = new CommandLine(<<<'XX'
 
-FTP deployment v3.0
+FTP deployment v3.0 - Pavel Kutáč edit
+
+See more on https://github.com/arxeiss/ftp-deployment
+and original on https://github.com/dg/ftp-deployment
 -------------------
 Usage:
 	deployment <config_file> [-t | --test]
