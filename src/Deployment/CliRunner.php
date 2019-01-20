@@ -146,8 +146,8 @@ class CliRunner
 		}
 
 		$deployment->includeMasks = self::toArray($config['include'], true);
-		$deployment->ignoreMasks = array_merge($this->ignoreMasks, self::toArray($config['ignore']));
 		$deployment->ignoreTrackedMasks = self::toArray($config['ignoretracked']);
+		$deployment->ignoreMasks = array_merge(self::toArray($config['ignore']), $this->ignoreMasks);
 		$deployment->deploymentFile = empty($config['deploymentfile']) ? $deployment->deploymentFile : $config['deploymentfile'];
 		$deployment->allowDelete = $config['allowdelete'];
 		$deployment->alwaysRunActions = $config['alwaysrunactions'];
@@ -200,7 +200,7 @@ class CliRunner
 	{
 		$cmd = new CommandLine(<<<'XX'
 
-FTP deployment v3.0 - Pavel Kutáč edit
+FTP deployment v3.1 - Pavel Kutáč edit
 
 See more on https://github.com/arxeiss/ftp-deployment
 and original on https://github.com/dg/ftp-deployment
