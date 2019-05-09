@@ -55,12 +55,19 @@ class Logger
 	}
 
 
-	public function log(string $s, string $color = null, bool $shorten = null): void
+	public function log(string $s, string $color = null, int $shorten = null): void
 	{
 		fwrite($this->file, $s . "\n");
 
-		if (($shorten ?? $this->shortenFor('*')) && preg_match('#^\n?.*#', $s, $m)) {
-			$s = $m[0];
+		if ($shorten === null) {
+			$shorten = $this->shortenFor('*');
+		}
+
+		if ($shorten) {
+			$lines = explode("\n", $s);
+			$lines = array_filter($lines);
+			$lines = $shorten > 0 ? array_slice($lines, 0, $shorten) : array_slice($lines, $shorten);
+			$s = implode("\n", $lines);
 		}
 		$s .= "        \n";
 		if ($this->useColors && $color) {
@@ -89,18 +96,18 @@ class Logger
 	 * @param  string $action
 	 * @return bool
 	 */
-	public function shortenFor(string $action)
+	public function shortenFor(string $action): int
 	{
 		$aliases = [
 			'https' => 'http',
 		];
 		if (in_array('*', $this->fullCliLog, true)) {
-			return false;
+			return 0;
 		}
 		if (isset($aliases[$action])) {
 			$action = $aliases[$action];
 		}
 		// If action is present in list, return false to disable shortening
-		return in_array($action, $this->fullCliLog, true) ? false : true;
+		return in_array($action, $this->fullCliLog, true) ? 0 : 1;
 	}
 }

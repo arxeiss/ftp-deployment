@@ -122,12 +122,16 @@ class CliRunner
 		}
 
 		if ($urlParts['scheme'] === 'sftp') {
-			$server = new SshServer(Helpers::buildUrl($urlParts));
+			$server = new SshServer(Helpers::buildUrl($urlParts), $config['publickey'] ?? null, $config['privatekey'] ?? null, $config['passphrase'] ?? null);
 		} elseif ($urlParts['scheme'] === 'file') {
 			$server = new FileServer($config['remote']);
 		} else {
 			$server = new FtpServer(Helpers::buildUrl($urlParts), (bool) $config['passivemode']);
 		}
+		$server->filePermissions = empty($config['filepermissions']) ? null : octdec($config['filepermissions']);
+		$server->dirPermissions = empty($config['dirpermissions']) ? null : octdec($config['dirpermissions']);
+
+		$server = new RetryServer($server, $this->logger);
 
 		if (!preg_match('#/|\\\\|[a-z]:#iA', $config['local'])) {
 			$config['local'] = dirname($this->configFile) . '/' . $config['local'];
@@ -157,9 +161,6 @@ class CliRunner
 		$deployment->runAfter = self::toArray($config['after'], true);
 		$deployment->testMode = !empty($config['test']) || $this->mode === 'test';
 
-		$server->filePermissions = empty($config['filepermissions']) ? null : octdec($config['filepermissions']);
-		$server->dirPermissions = empty($config['dirpermissions']) ? null : octdec($config['dirpermissions']);
-
 		return $deployment;
 	}
 
@@ -178,14 +179,6 @@ class CliRunner
 				$message = html_entity_decode(strip_tags($message));
 			}
 
-			$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-			if (isset($trace[2]['class']) && is_a($trace[2]['class'], 'Deployment\Server', true)) {
-				if (preg_match('#^\w+\(\):\s*(.+)#', $message, $m)) {
-					$message = $m[1];
-				}
-				throw new ServerException($message);
-			}
-
 			throw new \ErrorException($message, 0, $severity, $file, $line);
 		});
 
@@ -200,7 +193,7 @@ class CliRunner
 	{
 		$cmd = new CommandLine(<<<'XX'
 
-FTP deployment v3.1 - Pavel Kutáč edit
+FTP deployment v3.2 - Pavel Kutáč edit
 
 See more on https://github.com/arxeiss/ftp-deployment
 and original on https://github.com/dg/ftp-deployment
