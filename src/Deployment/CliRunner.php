@@ -96,11 +96,17 @@ class CliRunner
 			if (!$deployment->allowDelete) {
 				$this->logger->log('Deleting disabled');
 			}
-			$deployment->deploy();
+
+			try {
+				$deployment->deploy();
+			} catch (JobException | ServerException $e) {
+				$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
+			}
+			$this->logger->log("\n\n");
 		}
 
 		$time = time() - $time;
-		$this->logger->log("\nFinished at " . date('[Y/m/d H:i]') . " (in $time seconds)", 'lime');
+		$this->logger->log('Finished at ' . date('[Y/m/d H:i]') . " (in $time seconds)\n----------------------------------------------\n\n", 'lime');
 		return 0;
 	}
 
@@ -182,10 +188,21 @@ class CliRunner
 			throw new \ErrorException($message, 0, $severity, $file, $line);
 		});
 
-		set_exception_handler(function ($e) {
+		set_exception_handler(function (\Throwable $e): void {
 			$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red', $this->logger->shortenFor('exception'));
 			exit(1);
 		});
+
+		if (extension_loaded('pcntl')) {
+			pcntl_signal(SIGINT, function (): void {
+				pcntl_signal(SIGINT, SIG_DFL);
+				throw new \Exception('Terminated');
+			});
+		} elseif (function_exists('sapi_windows_set_ctrl_handler')) {
+			sapi_windows_set_ctrl_handler(function () {
+				throw new \Exception('Terminated');
+			});
+		}
 	}
 
 
@@ -193,7 +210,7 @@ class CliRunner
 	{
 		$cmd = new CommandLine(<<<'XX'
 
-FTP deployment v3.2 - Pavel Kutáč edit
+FTP deployment v3.3 - Pavel Kutáč edit
 
 See more on https://github.com/arxeiss/ftp-deployment
 and original on https://github.com/dg/ftp-deployment
@@ -221,13 +238,13 @@ XX
 		$this->mode = $options['--generate'] ? 'generate' : ($options['--test'] ? 'test' : null);
 		$this->configFile = $options['config'];
 
-		if (!flock($this->lock = fopen($options['config'], 'r'), LOCK_EX | LOCK_NB)) {
-			throw new \Exception('It seems that you are in the middle of another deployment.');
-		}
-
 		$config = $this->loadConfigFile($options['config']);
 		if (!$config) {
 			throw new \Exception('Missing config.');
+		}
+
+		if (!flock($this->lock = fopen($options['config'], 'r'), LOCK_EX | LOCK_NB)) {
+			throw new \Exception('It seems that you are in the middle of another deployment.');
 		}
 
 		$this->batches = isset($config['remote']) && is_string($config['remote'])

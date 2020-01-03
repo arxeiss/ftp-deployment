@@ -51,7 +51,7 @@ class Logger
 
 	public function __construct(string $file)
 	{
-		$this->file = fopen($file, 'w');
+		$this->file = fopen($file, 'a');
 	}
 
 
