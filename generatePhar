@@ -8,7 +8,7 @@
 
 ini_set("phar.readonly", 0);
 if (ini_get("phar.readonly") != 0) {
-    die("Cannot change phar.readonly mode - change it in 'php.ini' file");
+    die("Cannot change phar.readonly mode - change it in 'php.ini' file".PHP_EOL);
 }
 
 include 'src/Deployment/CommandLine.php';
@@ -30,25 +30,26 @@ XX
 $options = $cmd->parse();
 if ($options['--help']) {
     echo $cmd->help();
+    echo PHP_EOL;
     return;
 }
-$pharFile = $options['--file'] ?? 'deployment.phar';
+$pharFile = $options['--file'] ?? __DIR__.'/deployment.phar';
 $compress = (bool)$options['--compress'];
 // Remove old phar
 if (file_exists($pharFile)) { unlink($pharFile); }
 
 
-////////////////////////////////////
-// Create phar with given name    //
-// and with or withou compression //
-////////////////////////////////////
+/////////////////////////////////////
+// Create phar with given name     //
+// and with or without compression //
+/////////////////////////////////////
 
-echo ($compress ? "Compressed file" : "File")." {$pharFile} will be created\n";
+echo ($compress ? "Compressed file" : "File")." {$pharFile} will be created".PHP_EOL;
 
 $phar = new Phar($pharFile);
 $phar->startBuffering(); // Needed for custom STUB
 
-$phar->buildFromDirectory("src", '/\.php$/');
+$phar->buildFromDirectory(__DIR__."/src", '/\.php$/');
 if ($compress) {
     $phar->compressFiles(Phar::GZ);
 }
@@ -76,4 +77,4 @@ $phar->setStub($defaultStub);
 
 $phar->stopBuffering();
 
-echo "Creation of {$pharFile} was successfull";
+echo "Creation of {$pharFile} was successfull".PHP_EOL;
