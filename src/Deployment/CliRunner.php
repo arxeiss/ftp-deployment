@@ -75,39 +75,47 @@ class CliRunner
 		$this->logger->log('Started at ' . date('[Y/m/d H:i]'));
 		$this->logger->log("Config file is $this->configFile");
 
-		foreach ($this->batches as $name => $batch) {
-			$this->logger->log("\nDeploying $name");
+		$returnCode = 1;
 
-			$deployment = $this->createDeployer($batch);
-			$deployment->tempDir = $tempDir;
+		try{
+			foreach ($this->batches as $name => $batch) {
+				$this->logger->log("\nDeploying $name");
 
-			if ($this->mode === 'generate') {
-				$this->logger->log('Scanning files');
-				$localPaths = $deployment->collectPaths();
-				$this->logger->log('Saved ' . $deployment->writeDeploymentFile($localPaths));
-				continue;
-			}
+				$deployment = $this->createDeployer($batch);
+				$deployment->tempDir = $tempDir;
 
-			if ($deployment->testMode) {
-				$this->logger->log('Test mode', 'lime');
-			} else {
-				$this->logger->log('Live mode', 'aqua');
-			}
-			if (!$deployment->allowDelete) {
-				$this->logger->log('Deleting disabled');
-			}
+				if ($this->mode === 'generate') {
+					$this->logger->log('Scanning files');
+					$localPaths = $deployment->collectPaths();
+					$this->logger->log('Saved ' . $deployment->writeDeploymentFile($localPaths));
+					continue;
+				}
 
-			try {
+				if ($deployment->testMode) {
+					$this->logger->log('Test mode', 'lime');
+				} else {
+					$this->logger->log('Live mode', 'aqua');
+				}
+				if (!$deployment->allowDelete) {
+					$this->logger->log('Deleting disabled');
+				}
+
+
 				$deployment->deploy();
-			} catch (JobException | ServerException $e) {
-				$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
+				$this->logger->log("\n\n");
 			}
+			$returnCode = 0;
+		} catch (JobException | ServerException $e) {
+			$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
 			$this->logger->log("\n\n");
 		}
 
 		$time = time() - $time;
-		$this->logger->log('Finished at ' . date('[Y/m/d H:i]') . " (in $time seconds)\n----------------------------------------------\n\n", 'lime');
-		return 0;
+		$this->logger->log(
+			'Finished at ' . date('[Y/m/d H:i]') . " (in $time seconds)\n----------------------------------------------\n\n",
+			$returnCode === 0 ? 'lime' : 'red'
+		);
+		return $returnCode;
 	}
 
 
