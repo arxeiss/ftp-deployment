@@ -33,6 +33,9 @@ class Deployer
 	/** @var bool */
 	public $testMode = false;
 
+	/** @var string|null */
+	public $fileOutputDir = null;
+
 	/** @var bool */
 	public $allowDelete = false;
 
@@ -148,6 +151,9 @@ class Deployer
 				unlink($deploymentFile);
 			}
 			return;
+		} elseif ($this->fileOutputDir) {
+			$this->handleFileOutputMode($toUpload, $toDelete);
+			return;
 		}
 
 		if ($runBefore[0]) {
@@ -200,6 +206,67 @@ class Deployer
 			$this->logger->log("\nDeleting remote file $this->deploymentFile.running");
 			$this->server->removeFile($runningFile);
 		}
+	}
+
+	private function handleFileOutputMode(array $toUpload, array $toDelete): void
+	{
+		// OptimizedFolders array contains only folders wihtout files
+		// it is expected, others folders are created when file is placed inside - like with "lftp -d"
+		$files = $folders = $optimizedFolders = [];
+		$lastFolder = null;
+		foreach ($toUpload as $path) {
+			$path = ltrim($path, '/');
+
+			if (substr($path, -1) === '/') {
+				$folders[] = $path;
+				// If current folder does not belong to the previous folder,
+				// folder must be created, so is added to the creation - optimizedFolders array
+				if ($lastFolder !== null && strpos($path, $lastFolder) !== 0) {
+					$optimizedFolders[] = $lastFolder;
+				}
+				$lastFolder = $path;
+			} else {
+				$files[] = $path;
+				// If current file does not belong to the previous folder, the folder does not contains any files.
+				// So the folder must be created, so is added to the optimizedFolders array
+				if ($lastFolder !== null && strpos($path, $lastFolder) !== 0) {
+					$optimizedFolders[] = $lastFolder;
+				}
+				$lastFolder = null;
+			}
+		}
+		if ($lastFolder) {
+			$optimizedFolders[] = $lastFolder;
+		}
+		file_put_contents($this->fileOutputDir.'/createDirs.txt', implode("\n", $folders)."\n");
+		file_put_contents($this->fileOutputDir.'/createDirs.optimized.txt', implode("\n", $optimizedFolders)."\n");
+		file_put_contents($this->fileOutputDir.'/changedFiles.txt', implode("\n", $files)."\n");
+
+		// optimizedFiles array contains only files not included in any folder set to deletion
+		// optimizedFolders array contains only folders not included in parent folder set to deletion
+		$files = $folders = $optimizedFiles = $optimizedFolders = [];
+		$lastFolderToDelete = null;
+		foreach ($toDelete as $path) {
+			$path = ltrim($path, '/');
+
+			if (substr($path, -1) === '/') {
+				$folders[] = $path;
+				// There is no previous folder, or current folder does not belong to the previous folder
+				// Then the current folder must be set for deletion
+				if ($lastFolderToDelete === null || strpos($path, $lastFolderToDelete) !== 0) {
+					$optimizedFolders[] = $lastFolderToDelete = $path;
+				}
+			} else {
+				$files[] = $path;
+				if ($lastFolderToDelete === null || strpos($path, $lastFolderToDelete) !== 0) {
+					$optimizedFiles[] = $path;
+				}
+			}
+		}
+		file_put_contents($this->fileOutputDir.'/removeDirs.optimized.txt', implode("\n", $optimizedFolders)."\n");
+		file_put_contents($this->fileOutputDir.'/removeDirs.txt', implode("\n", $folders)."\n");
+		file_put_contents($this->fileOutputDir.'/removeFiles.optimized.txt', implode("\n", $optimizedFiles)."\n");
+		file_put_contents($this->fileOutputDir.'/removeFiles.txt', implode("\n", $files)."\n");
 	}
 
 

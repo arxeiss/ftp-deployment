@@ -19,6 +19,7 @@ class CliRunner
 	/** @var array */
 	public $defaults = [
 		'local' => '',
+		'fileOutputDir' => '',
 		'passivemode' => true,
 		'include' => '',
 		'ignore' => '',
@@ -46,9 +47,6 @@ class CliRunner
 
 	/** @var array[] */
 	private $batches = [];
-
-	/** @var resource */
-	private $lock;
 
 
 	public function run(): ?int
@@ -93,6 +91,8 @@ class CliRunner
 
 				if ($deployment->testMode) {
 					$this->logger->log('Test mode', 'lime');
+				} else if($deployment->fileOutputDir) {
+					$this->logger->log('File Output mode', 'teal');
 				} else {
 					$this->logger->log('Live mode', 'aqua');
 				}
@@ -123,6 +123,16 @@ class CliRunner
 	{
 		if (empty($config['remote']) || !($urlParts = parse_url($config['remote'])) || !isset($urlParts['scheme'], $urlParts['host'])) {
 			throw new \Exception("Missing or invalid 'remote' URL in config.");
+		}
+		if (!empty($config['fileoutputdir'])) {
+			if (!preg_match('#/|\\\\|[a-z]:#iA', $config['fileoutputdir'])) {
+				$config['fileoutputdir'] = dirname($this->configFile) . '/' . $config['fileoutputdir'];
+			}
+			$realFileOutputDir = realpath($config['fileoutputdir']);
+			if (!$realFileOutputDir || !is_dir($realFileOutputDir) || !is_writable($realFileOutputDir)) {
+				throw new \Exception('FileOutputDir "'.$config['fileoutputdir'].'" is not writable a directory.');
+			}
+			$config['fileoutputdir'] = $realFileOutputDir;
 		}
 		if (isset($config['user'])) {
 			$urlParts['user'] = urlencode($config['user']);
@@ -173,6 +183,7 @@ class CliRunner
 		$deployment->runBefore = self::toArray($config['before'], true);
 		$deployment->runAfterUpload = self::toArray($config['afterupload'], true);
 		$deployment->runAfter = self::toArray($config['after'], true);
+		$deployment->fileOutputDir = empty($config['fileoutputdir']) ? null : $config['fileoutputdir'];
 		$deployment->testMode = !empty($config['test']) || $this->mode === 'test';
 
 		return $deployment;
