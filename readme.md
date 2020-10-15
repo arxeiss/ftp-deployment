@@ -203,15 +203,12 @@ Or you can install it using Composer:
 composer create-project dg/ftp-deployment
 ```
 
-Are you looking for php_ssh2.dll?
-- [php_ssh2.dll for PHP 7.1 x86](https://files.nette.org/misc/7.1-x86/php_ssh2.dll)
-- [php_ssh2.dll for PHP 7.1 x64](https://files.nette.org/misc/7.1-x64/php_ssh2.dll)
-- [php_ssh2.dll for PHP 7.2 x86](https://files.nette.org/misc/7.2-x86/php_ssh2.dll) (seems buggy)
-- [php_ssh2.dll for PHP 7.2 x64](https://files.nette.org/misc/7.2-x64/php_ssh2.dll)
-- [php_ssh2.dll for PHP 7.3 x86](https://files.nette.org/misc/7.3-x86/php_ssh2.dll)
-- [php_ssh2.dll for PHP 7.3 x64](https://files.nette.org/misc/7.3-x64/php_ssh2.dll)
-- [php_ssh2.dll for PHP 7.4 x86](https://files.nette.org/misc/7.4-x86/php_ssh2.dll)
+Are you looking for php_ssh2.dll binaries for Windows? (thread safe)
+- [php_ssh2.dll for PHP 8.0 x64](https://files.nette.org/misc/8.0-x64/php_ssh2.dll)
 - [php_ssh2.dll for PHP 7.4 x64](https://files.nette.org/misc/7.4-x64/php_ssh2.dll)
+- [php_ssh2.dll for PHP 7.3 x64](https://files.nette.org/misc/7.3-x64/php_ssh2.dll)
+- [php_ssh2.dll for PHP 7.2 x64](https://files.nette.org/misc/7.2-x64/php_ssh2.dll)
+- [php_ssh2.dll for PHP 7.1 x64](https://files.nette.org/misc/7.1-x64/php_ssh2.dll)
 
 Need SSH authenticate using a public key?
 
