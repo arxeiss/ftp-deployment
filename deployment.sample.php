@@ -6,6 +6,7 @@ return [
 		'remote' => 'ftp://user:secretpassword@ftp.example.com/directory',
 		'local' => '.',
 		'test' => false,
+		'fileOutputDir' => './output/',
 		'alwaysRunActions' => true,
 		'ignore' => '
 			/deployment.*
