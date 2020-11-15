@@ -121,7 +121,11 @@ class CliRunner
 
 	private function createDeployer(array $config): Deployer
 	{
-		if (empty($config['remote']) || !($urlParts = parse_url($config['remote'])) || !isset($urlParts['scheme'], $urlParts['host'])) {
+		if (
+			empty($config['remote'])
+			|| !($urlParts = parse_url($config['remote']))
+			|| !isset($urlParts['scheme'], $urlParts['host'])
+		) {
 			throw new \Exception("Missing or invalid 'remote' URL in config.");
 		}
 		if (!empty($config['fileoutputdir'])) {
@@ -154,8 +158,12 @@ class CliRunner
 		} else {
 			$server = new FtpServer(Helpers::buildUrl($urlParts), (bool) $config['passivemode']);
 		}
-		$server->filePermissions = empty($config['filepermissions']) ? null : octdec($config['filepermissions']);
-		$server->dirPermissions = empty($config['dirpermissions']) ? null : octdec($config['dirpermissions']);
+		$server->filePermissions = empty($config['filepermissions'])
+			? null
+			: octdec($config['filepermissions']);
+		$server->dirPermissions = empty($config['dirpermissions'])
+			? null
+			: octdec($config['dirpermissions']);
 
 		$server = new RetryServer($server, $this->logger);
 
@@ -166,7 +174,9 @@ class CliRunner
 		$deployment = new Deployer($server, $config['local'], $this->logger);
 
 		if ($config['preprocess']) {
-			$deployment->preprocessMasks = $config['preprocess'] == 1 ? ['*.js', '*.css'] : self::toArray($config['preprocess']); // intentionally ==
+			$deployment->preprocessMasks = $config['preprocess'] == 1
+				? ['*.js', '*.css']
+				: self::toArray($config['preprocess']); // intentionally ==
 			$preprocessor = new Preprocessor($this->logger);
 			$deployment->addFilter('js', [$preprocessor, 'expandApacheImports']);
 			$deployment->addFilter('js', [$preprocessor, 'compressJs'], true);
@@ -178,7 +188,9 @@ class CliRunner
 		$deployment->includeMasks = self::toArray($config['include'], true);
 		$deployment->ignoreTrackedMasks = self::toArray($config['ignoretracked']);
 		$deployment->ignoreMasks = array_merge(self::toArray($config['ignore']), $this->ignoreMasks);
-		$deployment->deploymentFile = empty($config['deploymentfile']) ? $deployment->deploymentFile : $config['deploymentfile'];
+		$deployment->deploymentFile = empty($config['deploymentfile'])
+			? $deployment->deploymentFile
+			: $config['deploymentfile'];
 		$deployment->allowDelete = $config['allowdelete'];
 		$deployment->alwaysRunActions = $config['alwaysrunactions'];
 		$deployment->toPurge = self::toArray($config['purge'], true);
@@ -256,7 +268,9 @@ XX
 		}
 
 		$options = $cmd->parse();
-		$this->mode = $options['--generate'] ? 'generate' : ($options['--test'] ? 'test' : null);
+		$this->mode = $options['--generate']
+			? 'generate'
+			: ($options['--test'] ? 'test' : null);
 		$this->configFile = $options['config'];
 
 		$config = $this->loadConfigFile($options['config']);

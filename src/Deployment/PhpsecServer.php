@@ -30,8 +30,12 @@ class PhpsecServer implements Server
 	private $sftp;
 
 
-	public function __construct(string $url, string $publicKey = null, string $privateKey = null, string $passPhrase = null)
-	{
+	public function __construct(
+		string $url,
+		string $publicKey = null,
+		string $privateKey = null,
+		string $passPhrase = null
+	) {
 		$this->url = parse_url($url);
 		if (!isset($this->url['scheme'], $this->url['user']) || $this->url['scheme'] !== 'phpsec') {
 			throw new \InvalidArgumentException('Invalid URL or missing username');
@@ -44,6 +48,9 @@ class PhpsecServer implements Server
 
 	public function connect(): void
 	{
+		if ($this->sftp) { // reconnect?
+			$this->sftp->disconnect(); // @ may fail
+		}
 		$sftp = new SFTP($this->url['host'], $this->url['port'] ?? 22);
 		if (!$sftp->login(urldecode($this->url['user']), urldecode($this->url['pass']))) {
 			exit('Login Failed');
