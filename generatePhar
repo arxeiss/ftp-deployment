@@ -49,6 +49,7 @@ echo ($compress ? "Compressed file" : "File")." {$pharFile} will be created".PHP
 $phar = new Phar($pharFile);
 $phar->startBuffering(); // Needed for custom STUB
 
+$phar->buildFromDirectory(__DIR__."/vendor", '/\.php$/');
 $phar->buildFromDirectory(__DIR__."/src", '/\.php$/');
 if ($compress) {
     $phar->compressFiles(Phar::GZ);
