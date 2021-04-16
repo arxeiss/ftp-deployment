@@ -16,7 +16,7 @@
 	"require": {
 		"php": ">=7.1",
 		"ext-zlib": "*",
-		"phpseclib/phpseclib": "^2.0"
+		"phpseclib/phpseclib": "^3.0"
 	},
 	"require-dev": {
 		"ext-curl": "*",
@@ -32,5 +32,10 @@
 	"autoload": {
 		"classmap": ["src/"]
 	},
-	"bin": ["deployment"]
+	"bin": ["deployment"],
+	"extra": {
+		"branch-alias": {
+			"dev-master": "3.4-dev"
+		}
+	}
 }

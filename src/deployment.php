@@ -9,6 +9,7 @@ if (PHP_VERSION_ID < 70100) {
 	exit(1);
 }
 
+require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/Deployment/Server.php';
 require __DIR__ . '/Deployment/FtpServer.php';
 require __DIR__ . '/Deployment/SshServer.php';
@@ -23,6 +24,7 @@ require __DIR__ . '/Deployment/Preprocessor.php';
 require __DIR__ . '/Deployment/CommandLine.php';
 require __DIR__ . '/Deployment/CliRunner.php';
 require __DIR__ . '/Deployment/ServerException.php';
+require __DIR__ . '/Deployment/JobRunner.php';
 require __DIR__ . '/Deployment/JobException.php';
 
 
