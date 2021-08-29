@@ -19,11 +19,9 @@ class RetryServer implements Server
 	private const RETRIES = 20;
 	private const DELAY = 2;
 
-	/** @var Server */
-	private $server;
+	private Server $server;
 
-	/** @var Logger */
-	private $logger;
+	private Logger $logger;
 
 
 	public function __construct(Server $server, Logger $logger)
@@ -76,6 +74,12 @@ class RetryServer implements Server
 
 
 	public function purge(string $path, callable $progress = null): void
+	{
+		$this->retry(__FUNCTION__, func_get_args());
+	}
+
+
+	public function chmod(string $path, int $permissions): void
 	{
 		$this->retry(__FUNCTION__, func_get_args());
 	}

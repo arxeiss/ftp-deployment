@@ -9,26 +9,19 @@ use phpseclib3\Net\SFTP;
 
 class PhpsecServer implements Server
 {
-	/** @var int */
-	public $filePermissions;
+	public ?int $filePermissions = null;
 
-	/** @var int */
-	public $dirPermissions;
+	public ?int $dirPermissions = null;
 
-	/** @var array */
-	private $url;
+	private array $url;
 
-	/** @var string|null */
-	private $publicKey;
+	private ?string $publicKey;
 
-	/** @var string|null */
-	private $privateKey;
+	private ?string $privateKey;
 
-	/** @var string|null */
-	private $passPhrase;
+	private ?string $passPhrase;
 
-	/** @var SFTP */
-	private $sftp;
+	private ?SFTP $sftp = null;
 
 
 	public function __construct(
@@ -38,7 +31,7 @@ class PhpsecServer implements Server
 		string $passPhrase = null
 	) {
 		$this->url = parse_url($url);
-		if (!isset($this->url['scheme'], $this->url['user']) || $this->url['scheme'] !== 'phpsec') {
+		if (!isset($this->url['scheme'], $this->url['user'], $this->url['host']) || $this->url['scheme'] !== 'phpsec') {
 			throw new \InvalidArgumentException('Invalid URL or missing username');
 		}
 		$this->publicKey = $publicKey;
@@ -154,6 +147,14 @@ class PhpsecServer implements Server
 			if ($this->sftp->delete($path, true) === false) {
 				throw new ServerException('Unable to purge directory/file');
 			}
+		}
+	}
+
+
+	public function chmod(string $path, int $permissions): void
+	{
+		if ($this->sftp->chmod($permissions, $path) === false) {
+			throw new ServerException('Unable to chmod file');
 		}
 	}
 

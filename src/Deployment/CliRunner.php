@@ -16,8 +16,7 @@ namespace Deployment;
  */
 class CliRunner
 {
-	/** @var array */
-	public $defaults = [
+	public array $defaults = [
 		'local' => '',
 		'fileOutputDir' => '',
 		'passivemode' => true,
@@ -34,19 +33,17 @@ class CliRunner
 	];
 
 	/** @var string[] */
-	public $ignoreMasks = ['*.bak', '.svn', '.git*', 'Thumbs.db', '.DS_Store', '.idea'];
+	public array $ignoreMasks = ['*.bak', '.svn', '.git*', 'Thumbs.db', '.DS_Store', '.idea'];
 
-	/** @var Logger */
-	private $logger;
+	private Logger $logger;
 
-	/** @var string */
-	private $configFile;
+	private string $configFile;
 
-	/** @var string|null  test|generate|null */
-	private $mode;
+	/** test|generate|null */
+	private ?string $mode;
 
 	/** @var array[] */
-	private $batches = [];
+	private array $batches = [];
 
 
 	public function run(): ?int
@@ -72,50 +69,48 @@ class CliRunner
 		$time = time();
 		$this->logger->log('Started at ' . date('[Y/m/d H:i]'));
 		$this->logger->log("Config file is $this->configFile");
-
-		$returnCode = 1;
-
-		try{
-			foreach ($this->batches as $name => $batch) {
-				$this->logger->log("\nDeploying $name");
-
-				$deployment = $this->createDeployer($batch);
-				$deployment->tempDir = $tempDir;
-
-				if ($this->mode === 'generate') {
-					$this->logger->log('Scanning files');
-					$localPaths = $deployment->collectPaths();
-					$this->logger->log('Saved ' . $deployment->writeDeploymentFile($localPaths));
-					continue;
-				}
-
-				if ($deployment->testMode) {
-					$this->logger->log('Test mode', 'lime');
-				} else if($deployment->fileOutputDir) {
-					$this->logger->log('File Output mode', 'teal');
-				} else {
-					$this->logger->log('Live mode', 'aqua');
-				}
-				if (!$deployment->allowDelete) {
-					$this->logger->log('Deleting disabled');
-				}
+		$res = 0;
 
 
-				$deployment->deploy();
-				$this->logger->log("\n\n");
+		foreach ($this->batches as $name => $batch) {
+			$this->logger->log("\nDeploying $name");
+
+			$deployment = $this->createDeployer($batch);
+			$deployment->tempDir = $tempDir;
+
+			if ($this->mode === 'generate') {
+				$this->logger->log('Scanning files');
+				$localPaths = $deployment->collectPaths();
+				$this->logger->log('Saved ' . $deployment->writeDeploymentFile($localPaths));
+				continue;
 			}
-			$returnCode = 0;
-		} catch (JobException | ServerException $e) {
-			$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
+
+			if ($deployment->testMode) {
+				$this->logger->log('Test mode', 'lime');
+			} else if($deployment->fileOutputDir) {
+				$this->logger->log('File Output mode', 'teal');
+			} else {
+				$this->logger->log('Live mode', 'aqua');
+			}
+			if (!$deployment->allowDelete) {
+				$this->logger->log('Deleting disabled');
+			}
+
+			try{
+				$deployment->deploy();
+			} catch (JobException | ServerException $e) {
+				$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
+				$res = 1;
+			}
 			$this->logger->log("\n\n");
 		}
 
 		$time = time() - $time;
 		$this->logger->log(
 			'Finished at ' . date('[Y/m/d H:i]') . " (in $time seconds)\n----------------------------------------------\n\n",
-			$returnCode === 0 ? 'lime' : 'red'
+			$res === 0 ? 'lime' : 'red'
 		);
-		return $returnCode;
+		return $res;
 	}
 
 
@@ -124,7 +119,7 @@ class CliRunner
 		if (
 			empty($config['remote'])
 			|| !($urlParts = parse_url($config['remote']))
-			|| !isset($urlParts['scheme'], $urlParts['host'])
+			|| !isset($urlParts['scheme'])
 		) {
 			throw new \Exception("Missing or invalid 'remote' URL in config.");
 		}
@@ -191,8 +186,10 @@ class CliRunner
 		$deployment->deploymentFile = empty($config['deploymentfile'])
 			? $deployment->deploymentFile
 			: $config['deploymentfile'];
-		$deployment->allowDelete = $config['allowdelete'];
-		$deployment->alwaysRunActions = $config['alwaysrunactions'];
+
+		$deployment->allowDelete = (bool) $config['allowdelete'];
+		$deployment->alwaysRunActions = (bool)$config['alwaysrunactions'];
+
 		$deployment->toPurge = self::toArray($config['purge'], true);
 		$deployment->runBefore = self::toArray($config['before'], true);
 		$deployment->runAfterUpload = self::toArray($config['afterupload'], true);
@@ -241,23 +238,24 @@ class CliRunner
 
 	private function loadConfig(): ?array
 	{
-		$cmd = new CommandLine(<<<'XX'
 
-FTP deployment v3.4 - Pavel Kutáč edit
+		$cmd = new CommandLine(
+			<<<'XX'
+				FTP deployment v3.5 - Pavel Kutáč edit
 
-See more on https://github.com/arxeiss/ftp-deployment
-and original on https://github.com/dg/ftp-deployment
--------------------
-Usage:
-	deployment <config_file> [-t | --test]
+				See more on https://github.com/arxeiss/ftp-deployment
+				and original on https://github.com/dg/ftp-deployment
+				-------------------
+				Usage:
+					deployment <config_file> [-t | --test]
 
-Options:
-	-t | --test       Run in test-mode.
-	--section <name>  Only deploys the named section.
-	--generate        Only generates deployment file.
-	--no-progress     Hide the progress indicators.
+				Options:
+					-t | --test       Run in test-mode.
+					--section <name>  Only deploys the named section.
+					--generate        Only generates deployment file.
+					--no-progress     Hide the progress indicators.
 
-XX
+				XX
 		, [
 			'config' => [CommandLine::REALPATH => true],
 		]);

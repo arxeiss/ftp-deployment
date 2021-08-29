@@ -18,62 +18,52 @@ class Deployer
 {
 	private const TEMPORARY_SUFFIX = '.deploytmp';
 
-	/** @var string */
-	public $deploymentFile = '.htdeployment';
+	public string $deploymentFile = '.htdeployment';
 
 	/** @var string[] */
-	public $includeMasks = [];
+	public array $includeMasks = [];
 
 	/** @var string[] */
-	public $ignoreMasks = [];
+	public array $ignoreMasks = [];
 
 	/** @var string[] */
-	public $ignoreTrackedMasks = [];
+	public array $ignoreTrackedMasks = [];
 
-	/** @var bool */
-	public $testMode = false;
+	public bool $testMode = false;
 
-	/** @var string|null */
-	public $fileOutputDir = null;
+	public ?string $fileOutputDir = null;
 
-	/** @var bool */
-	public $allowDelete = false;
+	public bool $allowDelete = false;
 
 	/** @var bool Ignore Already synchronized*/
-	public $alwaysRunActions = false;
+	public bool $alwaysRunActions = false;
 
 	/** @var string[] relative paths */
-	public $toPurge = [];
+	public array $toPurge = [];
 
 	/** @var array of string|callable */
-	public $runBefore = [];
+	public array $runBefore = [];
 
 	/** @var array of string|callable */
-	public $runAfterUpload = [];
+	public array $runAfterUpload = [];
 
 	/** @var array of string|callable */
-	public $runAfter = [];
+	public array $runAfter = [];
 
-	/** @var string */
-	public $tempDir = '';
+	public string $tempDir = '';
 
 	/** @var string[] */
-	public $preprocessMasks = [];
+	public array $preprocessMasks = [];
 
-	/** @var string */
-	private $localDir;
+	private string $localDir;
 
-	/** @var string */
-	private $remoteDir;
+	private string $remoteDir;
 
-	/** @var Logger */
-	private $logger;
+	private Logger $logger;
 
-	/** @var array */
-	private $filters = [];
+	private array $filters = [];
 
-	/** @var Server */
-	private $server;
+	private Server $server;
 
 
 	public function __construct(Server $server, string $localDir, Logger $logger)
@@ -136,7 +126,7 @@ class Deployer
 			$this->logger->log('Already synchronized.', 'lime');
 
 			if (!$this->alwaysRunActions) {
-				$runAfterLocal = array_filter($this->runAfter, function ($job) { return is_string($job) && preg_match('#^local:#', $job); });
+				$runAfterLocal = array_filter($this->runAfter, fn($job) => is_string($job) && preg_match('#^local:#', $job));
 				if ($runAfterLocal) {
 					$this->logger->log("\nLocal-after-jobs:");
 					$this->runJobs($runAfterLocal);
@@ -161,24 +151,24 @@ class Deployer
 			$this->runJobs($runBefore[0]);
 		}
 
-		if ($toUpload) {
-			$this->logger->log("\nUploading:");
-			$this->uploadPaths($toUpload);
-		}
-		if($toUpload || $this->alwaysRunActions){
-			$this->runAfterUploadJobs();
-		}
-
-		$this->logger->log("Creating remote file $this->deploymentFile.running");
-		$runningFile = "$this->remoteDir/$this->deploymentFile.running";
-		$this->server->createDir(str_replace('\\', '/', dirname($runningFile)));
-		$this->server->writeFile(tempnam($this->tempDir, 'deploy'), $runningFile);
-
 		try {
+			$tempFiles = [];
+			if ($toUpload) {
+				$this->logger->log("\nUploading:");
+				$this->uploadPaths($toUpload, $tempFiles);
+			}
+			if($toUpload || $this->alwaysRunActions){
+				$this->runAfterUploadJobs();
+			}
+
+			$this->logger->log("Creating remote file $this->deploymentFile.running");
+			$runningFile = "$this->remoteDir/$this->deploymentFile.running";
+			$this->server->createDir(str_replace('\\', '/', dirname($runningFile)));
+			$this->server->writeFile(tempnam($this->tempDir, 'deploy'), $runningFile);
+
 			if ($toUpload) {
 				$this->logger->log("\nRenaming:");
-				$this->renamePaths($toUpload);
-				unlink($deploymentFile);
+				$this->renamePaths($toUpload, $tempFiles);
 			}
 
 			if ($toDelete) {
@@ -205,8 +195,17 @@ class Deployer
 			}
 
 		} finally {
-			$this->logger->log("\nDeleting remote file $this->deploymentFile.running");
-			$this->server->removeFile($runningFile);
+			if (isset($runningFile)) {
+				$this->logger->log("\nDeleting remote file $this->deploymentFile.running");
+				$this->server->removeFile($runningFile);
+			}
+			if (isset($deploymentFile)) {
+				unlink($deploymentFile);
+			}
+			if ($tempFiles) {
+				$this->logger->log("\nDeleting temporary files:");
+				$this->deletePaths(array_keys($tempFiles));
+			}
 		}
 	}
 
@@ -308,7 +307,8 @@ class Deployer
 		} catch (ServerException $e) {
 			return null;
 		}
-		$content = gzinflate(file_get_contents($tempFile));
+		$s = file_get_contents($tempFile);
+		$content = @gzinflate($s) ?: gzdecode($s);
 		$res = [];
 		foreach (explode("\n", $content) as $item) {
 			if (count($item = explode('=', $item, 2)) === 2) {
@@ -330,7 +330,7 @@ class Deployer
 		}
 		$file = $this->localDir . '/' . $this->deploymentFile;
 		@mkdir(dirname($file), 0777, true); // @ dir may exists
-		file_put_contents($file, gzdeflate($s, 9));
+		file_put_contents($file, gzencode($s, 9));
 		return $file;
 	}
 
@@ -339,7 +339,7 @@ class Deployer
 	 * Uploades files and creates directories.
 	 * @param  string[]  $paths  relative paths, starts with /
 	 */
-	private function uploadPaths(array $paths): void
+	private function uploadPaths(array $paths, array &$tempFiles): void
 	{
 		$prevDir = null;
 		foreach ($paths as $num => $path) {
@@ -358,6 +358,7 @@ class Deployer
 				continue;
 			}
 
+			$tempFiles[$path . self::TEMPORARY_SUFFIX] = true;
 			$localFile = $this->preprocess($path);
 			if ($localFile !== $this->localDir . $path) {
 				$path .= ' (filters applied)';
@@ -368,7 +369,7 @@ class Deployer
 				$remotePath . self::TEMPORARY_SUFFIX,
 				function ($percent) use ($num, $paths, $path) {
 					$this->writeProgress($num + 1, count($paths), $path, $percent, 'green');
-				}
+				},
 			);
 			$this->writeProgress($num + 1, count($paths), $path, null, 'green');
 		}
@@ -379,13 +380,14 @@ class Deployer
 	 * Renames uploaded files.
 	 * @param  string[]  $paths  relative paths, starts with /
 	 */
-	private function renamePaths(array $paths): void
+	private function renamePaths(array $paths, array &$tempFiles): void
 	{
-		$files = array_values(array_filter($paths, function ($path) { return substr($path, -1) !== '/'; }));
+		$files = array_values(array_filter($paths, fn($path) => substr($path, -1) !== '/'));
 		foreach ($files as $num => $file) {
 			$this->writeProgress($num + 1, count($files), "Renaming $file", null, 'olive');
 			$remoteFile = $this->remoteDir . $file;
 			$this->server->renameFile($remoteFile . self::TEMPORARY_SUFFIX, $remoteFile);
+			unset($tempFiles[$file . self::TEMPORARY_SUFFIX]);
 		}
 	}
 

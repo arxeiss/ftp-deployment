@@ -16,8 +16,7 @@ namespace Deployment;
  */
 class FileServer implements Server
 {
-	/** @var string */
-	private $root;
+	private string $root;
 
 
 	/**
@@ -122,7 +121,7 @@ class FileServer implements Server
 
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-			\RecursiveIteratorIterator::CHILD_FIRST
+			\RecursiveIteratorIterator::CHILD_FIRST,
 		);
 		foreach ($iterator as $name => $file) {
 			$file->isDir() ? Safe::rmdir($name) : Safe::unlink($name);
@@ -130,6 +129,16 @@ class FileServer implements Server
 				$progress($name);
 			}
 		}
+	}
+
+
+	/**
+	 * Changes file permissions.
+	 * @throws ServerException
+	 */
+	public function chmod(string $path, int $permissions): void
+	{
+		Safe::chmod($path, $permissions);
 	}
 
 

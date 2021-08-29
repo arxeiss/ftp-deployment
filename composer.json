@@ -14,7 +14,7 @@
 		}
 	],
 	"require": {
-		"php": ">=7.1",
+		"php": ">=7.4",
 		"ext-zlib": "*",
 		"phpseclib/phpseclib": "^3.0"
 	},
@@ -35,7 +35,7 @@
 	"bin": ["deployment"],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.4-dev"
+			"dev-master": "3.5-dev"
 		}
 	}
 }

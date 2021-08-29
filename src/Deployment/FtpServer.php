@@ -20,20 +20,17 @@ class FtpServer implements Server
 
 	private const BLOCK_SIZE = 400000;
 
-	/** @var int */
-	public $filePermissions;
+	public ?int $filePermissions = null;
 
-	/** @var int */
-	public $dirPermissions;
+	public ?int $dirPermissions = null;
 
 	/** @var resource */
 	private $connection;
 
-	/** @var array  see parse_url() */
-	private $url;
+	/** see parse_url() */
+	private array $url;
 
-	/** @var bool */
-	private $passiveMode = true;
+	private bool $passiveMode = true;
 
 
 	/**
@@ -47,10 +44,10 @@ class FtpServer implements Server
 		}
 		$this->url = $url = parse_url($url);
 		if (
-			!isset($url['scheme'], $url['user'], $url['pass'])
+			!isset($url['scheme'], $url['user'], $url['pass'], $url['host'])
 			|| ($url['scheme'] !== 'ftp' && $url['scheme'] !== 'ftps')
 		) {
-			throw new \InvalidArgumentException('Invalid URL or missing username or password');
+			throw new \InvalidArgumentException('Invalid URL or missing username, password or host');
 		} elseif ($url['scheme'] === 'ftps' && !function_exists('ftp_ssl_connect')) {
 			throw new \Exception('PHP extension OpenSSL is not built statically in PHP.');
 		}
@@ -111,6 +108,7 @@ class FtpServer implements Server
 				: Safe::ftp_nb_continue($this->connection);
 
 			$blocks++;
+			usleep(10000);
 		} while ($ret === FTP_MOREDATA);
 
 		if ($this->filePermissions) {
@@ -270,7 +268,7 @@ class FtpServer implements Server
 	/**
 	 * @throws ServerException
 	 */
-	private function chmod(string $file, int $perms): void
+	public function chmod(string $file, int $perms): void
 	{
 		try {
 			Safe::ftp_chmod($this->connection, $perms, $file);

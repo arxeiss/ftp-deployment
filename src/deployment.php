@@ -4,28 +4,17 @@ declare(strict_types=1);
 
 namespace Deployment;
 
-if (PHP_VERSION_ID < 70100) {
-	echo 'Error: Deployment requires PHP 7.1 or newer.';
+if (PHP_VERSION_ID < 70400) {
+	echo 'Error: Deployment requires PHP 7.4 or newer.';
 	exit(1);
 }
 
-require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/Deployment/Server.php';
-require __DIR__ . '/Deployment/FtpServer.php';
-require __DIR__ . '/Deployment/SshServer.php';
-require __DIR__ . '/Deployment/PhpsecServer.php';
-require __DIR__ . '/Deployment/FileServer.php';
-require __DIR__ . '/Deployment/RetryServer.php';
-require __DIR__ . '/Deployment/Helpers.php';
-require __DIR__ . '/Deployment/Safe.php';
-require __DIR__ . '/Deployment/Logger.php';
-require __DIR__ . '/Deployment/Deployer.php';
-require __DIR__ . '/Deployment/Preprocessor.php';
-require __DIR__ . '/Deployment/CommandLine.php';
-require __DIR__ . '/Deployment/CliRunner.php';
-require __DIR__ . '/Deployment/ServerException.php';
-require __DIR__ . '/Deployment/JobRunner.php';
-require __DIR__ . '/Deployment/JobException.php';
+if (is_file(__DIR__ . '/../vendor/autoload.php')) {
+	require __DIR__ . '/../vendor/autoload.php';
+
+} elseif (is_file(__DIR__ . '/../../../autoload.php')) {
+	require __DIR__ . '/../../../autoload.php';
+}
 
 
 $runner = new CliRunner;

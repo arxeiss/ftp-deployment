@@ -18,11 +18,9 @@ namespace Deployment;
  */
 class SshServer implements Server
 {
-	/** @var int */
-	public $filePermissions;
+	public ?int $filePermissions = null;
 
-	/** @var int */
-	public $dirPermissions;
+	public ?int $dirPermissions = null;
 
 	/** @var resource */
 	private $connection;
@@ -30,17 +28,14 @@ class SshServer implements Server
 	/** @var resource */
 	private $sftp;
 
-	/** @var array  see parse_url() */
-	private $url;
+	/** see parse_url() */
+	private array $url;
 
-	/** @var string|null */
-	private $publicKey;
+	private ?string $publicKey;
 
-	/** @var string|null */
-	private $privateKey;
+	private ?string $privateKey;
 
-	/** @var string */
-	private $passPhrase;
+	private ?string $passPhrase;
 
 
 	/**
@@ -57,7 +52,7 @@ class SshServer implements Server
 			throw new \Exception('PHP extension SSH2 is not loaded.');
 		}
 		$this->url = parse_url($url);
-		if (!isset($this->url['scheme'], $this->url['user']) || $this->url['scheme'] !== 'sftp') {
+		if (!isset($this->url['scheme'], $this->url['user'], $this->url['host']) || $this->url['scheme'] !== 'sftp') {
 			throw new \InvalidArgumentException('Invalid URL or missing username');
 		}
 		$this->publicKey = $publicKey;
@@ -211,6 +206,16 @@ class SshServer implements Server
 			$this->purge("$dir/$subdir", $progress);
 			Safe::rmdir("$path/$subdir");
 		}
+	}
+
+
+	/**
+	 * Changes file permissions.
+	 * @throws ServerException
+	 */
+	public function chmod(string $path, int $permissions): void
+	{
+		Safe::ssh2_sftp_chmod($this->sftp, $path, $permissions);
 	}
 
 

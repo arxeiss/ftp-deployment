@@ -66,10 +66,3 @@ ignoreTracked = "
 **Reason why I want this?**
 Sometimes I want to do a quick deploy, but first I have to run `composer install --no-dev`, run deployment, and run `composer install` which takes time. With this solution, it is possible to ignore the vendor folder, but keep those files tracked for future full deploy.
 
-### 5. Return non-zero code when deploy fails
-- When deploy fails, non-zero code is returned. This means, exit code is not zero, which signaling error.
-- This is great especially for running in a pipeline
-- See commit [b3e62a8d](https://github.com/arxeiss/ftp-deployment/commit/b3e62a8dd67a685a2618582768392c0d5e766efa)
-
-**Reason why I want this?**
-I used FTP Deployment in the Gitlab pipeline. Deploy failed, but the whole job succeded because the exit code was 0.
