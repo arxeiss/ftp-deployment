@@ -16,12 +16,10 @@ namespace Deployment;
  */
 class FtpServer implements Server
 {
-	private const RETRIES = 10;
-
-	private const BLOCK_SIZE = 400000;
+	private const Retries = 10;
+	private const BlockSize = 400000;
 
 	public ?int $filePermissions = null;
-
 	public ?int $dirPermissions = null;
 
 	/** @var resource */
@@ -29,7 +27,6 @@ class FtpServer implements Server
 
 	/** see parse_url() */
 	private array $url;
-
 	private bool $passiveMode = true;
 
 
@@ -37,8 +34,11 @@ class FtpServer implements Server
 	 * @param  string  $url  ftp://... or ftps://...
 	 * @throws \Exception
 	 */
-	public function __construct(string $url, bool $passiveMode = true)
-	{
+	public function __construct(
+		#[\SensitiveParameter]
+		string $url,
+		bool $passiveMode = true,
+	) {
 		if (!extension_loaded('ftp')) {
 			throw new \Exception('PHP extension FTP is not loaded.');
 		}
@@ -101,7 +101,7 @@ class FtpServer implements Server
 		$blocks = 0;
 		do {
 			if ($progress) {
-				$progress(min($blocks * self::BLOCK_SIZE / $size, 100));
+				$progress(min($blocks * self::BlockSize / $size, 100));
 			}
 			$ret = $blocks === 0
 				? Safe::ftp_nb_put($this->connection, $remote, $local, FTP_BINARY)
@@ -221,7 +221,7 @@ class FtpServer implements Server
 		foreach ((array) Safe::ftp_nlist($this->connection, $dir) as $entry) {
 			if ($entry == null || $entry === $dir || preg_match('#(^|/)\\.+$#', $entry)) { // intentionally ==
 				continue;
-			} elseif (strpos($entry, '/') === false) {
+			} elseif (!str_contains($entry, '/')) {
 				$entry = "$dir/$entry";
 			}
 

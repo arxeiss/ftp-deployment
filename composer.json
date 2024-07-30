@@ -2,7 +2,9 @@
 	"name": "arxeiss/ftp-deployment",
 	"type": "project",
 	"homepage": "https://github.com/arxeiss/ftp-deployment",
-	"license": ["BSD-3-Clause", "GPL-2.0", "GPL-3.0"],
+	"description": "A tool for automated deployment of web applications to an FTP server.",
+	"keywords": ["deployment", "ftp", "ssh"],
+	"license": ["BSD-3-Clause", "GPL-2.0-only", "GPL-3.0-only"],
 	"authors": [
 		{
 			"name": "David Grudl",
@@ -14,7 +16,7 @@
 		}
 	],
 	"require": {
-		"php": ">=7.4",
+		"php": ">=8.0",
 		"ext-zlib": "*",
 		"phpseclib/phpseclib": "^3.0"
 	},
@@ -35,7 +37,7 @@
 	"bin": ["deployment"],
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.5-dev"
+			"dev-master": "3.6-dev"
 		}
 	}
 }

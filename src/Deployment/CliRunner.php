@@ -34,9 +34,7 @@ class CliRunner
 
 	/** @var string[] */
 	public array $ignoreMasks = ['*.bak', '.svn', '.git*', 'Thumbs.db', '.DS_Store', '.idea'];
-
 	private Logger $logger;
-
 	private string $configFile;
 
 	/** test|generate|null */
@@ -243,7 +241,7 @@ class CliRunner
 
 		$cmd = new CommandLine(
 			<<<'XX'
-				FTP deployment v3.5 - Pavel Kutáč edit
+				FTP deployment v3.6 - Pavel Kutáč edit
 
 				See more on https://github.com/arxeiss/ftp-deployment
 				and original on https://github.com/dg/ftp-deployment
@@ -257,10 +255,11 @@ class CliRunner
 					--generate        Only generates deployment file.
 					--no-progress     Hide the progress indicators.
 
-				XX
-		, [
-			'config' => [CommandLine::REALPATH => true],
-		]);
+				XX,
+			[
+				'config' => [CommandLine::RealPath => true],
+			],
+		);
 
 		if ($cmd->isEmpty()) {
 			$cmd->help();
