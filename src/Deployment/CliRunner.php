@@ -43,6 +43,9 @@ class CliRunner
 	/** @var array[] */
 	private array $batches = [];
 
+	/** @var resource */
+	private $lock;
+
 
 	public function run(): ?int
 	{
