@@ -4,3 +4,4 @@
 /temp
 *.sublime-*
 *.phar
+/composer.lock

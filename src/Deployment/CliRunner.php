@@ -106,7 +106,7 @@ class CliRunner
 		$time = time() - $time;
 		$this->logger->log(
 			'Finished at ' . date('[Y/m/d H:i]') . " (in $time seconds)\n----------------------------------------------\n\n",
-			$res === 0 ? 'lime' : 'red'
+			$res === 0 ? 'lime' : 'red',
 		);
 		return $res;
 	}
@@ -127,7 +127,7 @@ class CliRunner
 			}
 			$realFileOutputDir = realpath($config['fileoutputdir']);
 			if (!$realFileOutputDir || !is_dir($realFileOutputDir) || !is_writable($realFileOutputDir)) {
-				throw new \Exception('FileOutputDir "'.$config['fileoutputdir'].'" is not writable a directory.');
+				throw new \Exception('FileOutputDir "' . $config['fileoutputdir'] . '" is not writable a directory.');
 			}
 			$config['fileoutputdir'] = $realFileOutputDir;
 		}
@@ -192,7 +192,9 @@ class CliRunner
 		$deployment->runBefore = self::toArray($config['before'], true);
 		$deployment->runAfterUpload = self::toArray($config['afterupload'], true);
 		$deployment->runAfter = self::toArray($config['after'], true);
-		$deployment->fileOutputDir = empty($config['fileoutputdir']) ? null : $config['fileoutputdir'];
+		$deployment->fileOutputDir = empty($config['fileoutputdir'])
+			? null
+			: $config['fileoutputdir'];
 		$deployment->testMode = !empty($config['test']) || $this->mode === 'test';
 
 		return $deployment;
@@ -238,7 +240,6 @@ class CliRunner
 
 	private function loadConfig(): ?array
 	{
-
 		$cmd = new CommandLine(
 			<<<'XX'
 				FTP deployment v3.6 - Pavel Kutáč edit

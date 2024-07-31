@@ -65,4 +65,3 @@ ignoreTracked = "
 
 **Reason why I want this?**
 Sometimes I want to do a quick deploy, but first I have to run `composer install --no-dev`, run deployment, and run `composer install` which takes time. With this solution, it is possible to ignore the vendor folder, but keep those files tracked for future full deploy.
-

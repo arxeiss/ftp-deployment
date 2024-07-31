@@ -204,6 +204,7 @@ class Deployer
 		}
 	}
 
+
 	private function handleFileOutputMode(array $toUpload, array $toDelete): void
 	{
 		// OptimizedFolders array contains only folders wihtout files
@@ -234,9 +235,9 @@ class Deployer
 		if ($lastFolder) {
 			$optimizedFolders[] = $lastFolder;
 		}
-		file_put_contents($this->fileOutputDir.'/createDirs.txt', implode("\n", $folders)."\n");
-		file_put_contents($this->fileOutputDir.'/createDirs.optimized.txt', implode("\n", $optimizedFolders)."\n");
-		file_put_contents($this->fileOutputDir.'/changedFiles.txt', implode("\n", $files)."\n");
+		file_put_contents($this->fileOutputDir . '/createDirs.txt', implode("\n", $folders) . "\n");
+		file_put_contents($this->fileOutputDir . '/createDirs.optimized.txt', implode("\n", $optimizedFolders) . "\n");
+		file_put_contents($this->fileOutputDir . '/changedFiles.txt', implode("\n", $files) . "\n");
 
 		// optimizedFiles array contains only files not included in any folder set to deletion
 		// optimizedFolders array contains only folders not included in parent folder set to deletion
@@ -259,10 +260,10 @@ class Deployer
 				}
 			}
 		}
-		file_put_contents($this->fileOutputDir.'/removeDirs.optimized.txt', implode("\n", $optimizedFolders)."\n");
-		file_put_contents($this->fileOutputDir.'/removeDirs.txt', implode("\n", $folders)."\n");
-		file_put_contents($this->fileOutputDir.'/removeFiles.optimized.txt', implode("\n", $optimizedFiles)."\n");
-		file_put_contents($this->fileOutputDir.'/removeFiles.txt', implode("\n", $files)."\n");
+		file_put_contents($this->fileOutputDir . '/removeDirs.optimized.txt', implode("\n", $optimizedFolders) . "\n");
+		file_put_contents($this->fileOutputDir . '/removeDirs.txt', implode("\n", $folders) . "\n");
+		file_put_contents($this->fileOutputDir . '/removeFiles.optimized.txt', implode("\n", $optimizedFiles) . "\n");
+		file_put_contents($this->fileOutputDir . '/removeFiles.txt', implode("\n", $files) . "\n");
 	}
 
 
