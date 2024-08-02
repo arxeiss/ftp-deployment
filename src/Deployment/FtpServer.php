@@ -54,6 +54,13 @@ class FtpServer implements Server
 		$this->passiveMode = $passiveMode;
 	}
 
+	function __destruct()
+	{
+		if ($this->connection) { // reconnect?
+			@ftp_close($this->connection); // @ may fail
+		}
+	}
+
 
 	/**
 	 * Connects to FTP server.
