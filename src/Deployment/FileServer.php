@@ -1,12 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * FTP Deployment
  *
  * Copyright (c) 2009 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Deployment;
 
@@ -26,7 +24,7 @@ class FileServer implements Server
 	 */
 	public function __construct(string $url)
 	{
-		if (substr($url, 0, 7) !== 'file://') {
+		if (!str_starts_with($url, 'file://')) {
 			throw new \InvalidArgumentException('Invalid URL');
 		}
 		$this->root = $url;
@@ -58,7 +56,7 @@ class FileServer implements Server
 	 * Uploads file.
 	 * @throws ServerException
 	 */
-	public function writeFile(string $local, string $remote, callable $progress = null): void
+	public function writeFile(string $local, string $remote, ?callable $progress = null): void
 	{
 		Safe::copy($local, $this->root . $remote);
 		if ($this->filePermissions) {
@@ -96,7 +94,7 @@ class FileServer implements Server
 	public function createDir(string $dir): void
 	{
 		if (trim($dir, '/') !== '' && !file_exists($path = $this->root . $dir)) {
-			Safe::mkdir($path, $this->dirPermissions ?? 0777, true);
+			Safe::mkdir($path, $this->dirPermissions ?? 0o777, true);
 		}
 	}
 
@@ -117,7 +115,7 @@ class FileServer implements Server
 	 * Recursive deletes content of directory or file.
 	 * @throws ServerException
 	 */
-	public function purge(string $dir, callable $progress = null): void
+	public function purge(string $dir, ?callable $progress = null): void
 	{
 		$dir = $this->root . $dir;
 		if (!file_exists($dir)) {
@@ -163,6 +161,6 @@ class FileServer implements Server
 	public function execute(string $command): string
 	{
 		Safe::exec($command, $out);
-		return implode("\n", $out);
+		return implode("\n", $out ?? []);
 	}
 }

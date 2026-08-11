@@ -9,6 +9,6 @@
 namespace Deployment;
 
 
-class JobException extends \RuntimeException
+class SkipException extends \RuntimeException
 {
 }

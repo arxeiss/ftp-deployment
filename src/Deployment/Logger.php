@@ -1,12 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * FTP Deployment
  *
  * Copyright (c) 2009 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Deployment;
 
@@ -24,6 +22,8 @@ class Logger
 
 	/** @var resource */
 	private $file;
+
+	/** @var array<string, string> */
 	private array $colors = [
 		'black' => '0;30',
 		'gray' => '1;30',
@@ -46,11 +46,12 @@ class Logger
 
 	public function __construct(string $file)
 	{
-		$this->file = fopen($file, 'a');
+		$this->file = fopen($file, 'a')
+			?: throw new \RuntimeException("Cannot open log file '$file'");
 	}
 
 
-	public function log(string $s, string $color = null, int $shorten = null): void
+	public function log(string $s, ?string $color = null, int $shorten = 1): void
 	{
 		fwrite($this->file, $s . "\n");
 
@@ -91,7 +92,7 @@ class Logger
 	 * Check if given action should be shortened
 	 *
 	 * @param  string $action
-	 * @return bool
+	 * @return int
 	 */
 	public function shortenFor(string $action): int
 	{

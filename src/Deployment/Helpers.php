@@ -1,12 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * FTP Deployment
  *
  * Copyright (c) 2009 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Deployment;
 
@@ -22,14 +20,13 @@ class Helpers
 	public static function hashFile(string $file): string
 	{
 		if (filesize($file) > 5e6) {
-			return md5_file($file);
-		} else {
-			$s = file_get_contents($file);
-			if (preg_match('#^[\x09\x0A\x0D\x20-\x7E\x80-\xFF]*+\z#', $s)) {
-				$s = str_replace("\r\n", "\n", $s);
-			}
-			return md5($s);
+			return (string) md5_file($file);
 		}
+		$s = (string) file_get_contents($file);
+		if (preg_match('#^[\x09\x0A\x0D\x20-\x7E\x80-\xFF]*+\z#', $s)) {
+			$s = str_replace("\r\n", "\n", $s);
+		}
+		return md5($s);
 	}
 
 
@@ -44,7 +41,7 @@ class Helpers
 		$path = explode('/', ltrim($path, '/'));
 		foreach ($patterns as $pattern) {
 			$pattern = strtr($pattern, '\\', '/');
-			if ($neg = substr($pattern, 0, 1) === '!') {
+			if ($neg = str_starts_with($pattern, '!')) {
 				$pattern = substr($pattern, 1);
 			}
 
@@ -54,7 +51,7 @@ class Helpers
 				}
 				continue;
 
-			} elseif (substr($pattern, -1) === '/') { // trailing slash means directory
+			} elseif (str_ends_with($pattern, '/')) { // trailing slash means directory
 				$pattern = trim($pattern, '/');
 				if (!$isDir && count($path) <= count(explode('/', $pattern))) {
 					continue;
@@ -76,21 +73,20 @@ class Helpers
 
 	/**
 	 * Processes HTTP request.
+	 * @param ?array<string, scalar>  $postData
+	 * @param-out ?string  $error
 	 */
-	public static function fetchUrl(string $url, ?string &$error, array $postData = null): string
+	public static function fetchUrl(string $url, ?string &$error, ?array $postData = null): string
 	{
 		if (extension_loaded('curl')) {
 			$ch = curl_init($url);
-			$options = [
-				CURLOPT_RETURNTRANSFER => 1,
-				CURLOPT_FOLLOWLOCATION => 1,
-				CURLOPT_USERAGENT => 'Mozilla/5.0 FTP-deployment',
-			];
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+			curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 FTP-deployment');
 			if ($postData !== null) {
-				$options[CURLOPT_POST] = true;
-				$options[CURLOPT_POSTFIELDS] = http_build_query($postData, '', '&');
+				curl_setopt($ch, CURLOPT_POST, true);
+				curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData, '', '&'));
 			}
-			curl_setopt_array($ch, $options);
 			$output = curl_exec($ch);
 			if (curl_errno($ch)) {
 				$error = curl_error($ch);
@@ -107,13 +103,16 @@ class Helpers
 				],
 			]));
 			$error = $output === false
-				? preg_replace('#^file_get_contents\\(.*?\\): #', '', error_get_last()['message'])
+				? preg_replace('#^file_get_contents\(.*?\): #', '', (string) (error_get_last()['message'] ?? ''))
 				: null;
 		}
 		return (string) $output;
 	}
 
 
+	/**
+	 * @param array{scheme?: string, host?: string, port?: int, user?: string, pass?: string, path?: string}  $url
+	 */
 	public static function buildUrl(array $url): string
 	{
 		return (isset($url['scheme']) ? $url['scheme'] . '://' : '')

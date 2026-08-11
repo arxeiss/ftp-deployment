@@ -16,14 +16,17 @@
 		}
 	],
 	"require": {
-		"php": ">=8.0",
+		"php": ">=8.2",
 		"ext-zlib": "*",
-		"phpseclib/phpseclib": "^3.0"
+		"phpseclib/phpseclib": "^3.0",
+		"nette/command-line": "^1.9.2"
 	},
 	"require-dev": {
 		"ext-curl": "*",
 		"nette/tester": "^2.0",
-		"phpstan/phpstan": "^0.12"
+		"phpstan/phpstan": "^2.1",
+		"phpstan/extension-installer": "^1.4",
+		"nette/phpstan-rules": "^1.0"
 	},
 	"suggest": {
 		"ext-ftp": "to connect to ftp:// server",
@@ -35,9 +38,18 @@
 		"classmap": ["src/"]
 	},
 	"bin": ["deployment"],
+	"scripts": {
+		"phpstan": "phpstan analyse",
+		"tester": "tester tests -s"
+	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.6-dev"
+			"dev-master": "3.7-dev"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"phpstan/extension-installer": true
 		}
 	}
 }

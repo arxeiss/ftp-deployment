@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * FTP Deployment
@@ -6,9 +6,10 @@
  * Copyright (c) 2009 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Deployment;
+
+use Nette\CommandLine\Console;
+use Nette\CommandLine\Parser;
 
 
 /**
@@ -16,6 +17,7 @@ namespace Deployment;
  */
 class CliRunner
 {
+	/** @var array<string, string|bool> */
 	public array $defaults = [
 		'local' => '',
 		'fileOutputDir' => '',
@@ -33,23 +35,25 @@ class CliRunner
 	];
 
 	/** @var string[] */
-	public array $ignoreMasks = ['*.bak', '.svn', '.git*', 'Thumbs.db', '.DS_Store', '.idea'];
+	public array $ignoreMasks = ['*.bak', '.svn', '.git*', 'Thumbs.db', '.DS_Store', '.idea', '.claude'];
 	private Logger $logger;
 	private string $configFile;
+	private InterruptHandler $interruptHandler;
 
-	/** test|generate|null */
+	/** @var 'test'|'generate'|null */
 	private ?string $mode;
 
-	/** @var array[] */
+	/** @var array<string, array<string, mixed>> */
 	private array $batches = [];
 
-	/** @var resource */
+	/** @var resource|null holds file lock for process lifetime */
 	private $lock;
 
 
 	public function run(): ?int
 	{
 		$this->logger = new Logger('php://memory');
+		$this->interruptHandler = new InterruptHandler;
 		$this->setupPhp();
 
 		$config = $this->loadConfig();
@@ -60,11 +64,12 @@ class CliRunner
 		$this->logger = new Logger($config['log']);
 		$this->logger->useColors = (bool) $config['colors'];
 		$this->logger->showProgress = (bool) $config['progress'];
+		$this->interruptHandler->logger = $this->logger;
 		$this->logger->fullCliLog = $config['fullclilog'];
 
 		if (!is_dir($tempDir = $config['tempdir'])) {
 			$this->logger->log("Creating temporary directory $tempDir");
-			mkdir($tempDir, 0777, true);
+			mkdir($tempDir, 0o777, true);
 		}
 
 		$time = time();
@@ -102,8 +107,20 @@ class CliRunner
 			} catch (JobException | ServerException $e) {
 				$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
 				$res = 1;
+			} catch (TerminatedException $e) {
+				$this->logger->log($e->getMessage(), 'red');
+				$res = 1;
+				break;
 			}
 			$this->logger->log("\n\n");
+		}
+
+		if ($this->interruptHandler->hasSkipped()) {
+			$this->logger->log("\nSkipped operations:", 'yellow');
+			foreach ($this->interruptHandler->getSkipped() as $skipped) {
+				$this->logger->log("  - $skipped", 'yellow');
+			}
+			$res = 1;
 		}
 
 		$time = time() - $time;
@@ -115,6 +132,7 @@ class CliRunner
 	}
 
 
+	/** @param array<string, mixed> $config */
 	private function createDeployer(array $config): Deployer
 	{
 		if (
@@ -156,29 +174,29 @@ class CliRunner
 		}
 		$server->filePermissions = empty($config['filepermissions'])
 			? null
-			: octdec($config['filepermissions']);
+			: (int) octdec($config['filepermissions']);
 		$server->dirPermissions = empty($config['dirpermissions'])
 			? null
-			: octdec($config['dirpermissions']);
+			: (int) octdec($config['dirpermissions']);
 
-		$server = new RetryServer($server, $this->logger);
+		$server = new RetryServer($server, $this->logger, $this->interruptHandler);
 
-		if (!preg_match('#/|\\\\|[a-z]:#iA', $config['local'])) {
+		if (!preg_match('#/|\\\|[a-z]:#iA', $config['local'])) {
 			$config['local'] = dirname($this->configFile) . '/' . $config['local'];
 		}
 
-		$deployment = new Deployer($server, $config['local'], $this->logger);
+		$deployment = new Deployer($server, $config['local'], $this->logger, $this->interruptHandler);
 
 		if ($config['preprocess']) {
 			$deployment->preprocessMasks = $config['preprocess'] == 1
 				? ['*.js', '*.css']
 				: self::toArray($config['preprocess']); // intentionally ==
 			$preprocessor = new Preprocessor($this->logger);
-			$deployment->addFilter('js', [$preprocessor, 'expandApacheImports']);
-			$deployment->addFilter('js', [$preprocessor, 'compressJs'], true);
-			$deployment->addFilter('css', [$preprocessor, 'expandApacheImports']);
-			$deployment->addFilter('css', [$preprocessor, 'expandCssImports']);
-			$deployment->addFilter('css', [$preprocessor, 'compressCss'], true);
+			$deployment->addFilter('js', $preprocessor->expandApacheImports(...));
+			$deployment->addFilter('js', $preprocessor->compressJs(...), true);
+			$deployment->addFilter('css', $preprocessor->expandApacheImports(...));
+			$deployment->addFilter('css', $preprocessor->expandCssImports(...));
+			$deployment->addFilter('css', $preprocessor->compressCss(...), true);
 		}
 
 		$deployment->includeMasks = self::toArray($config['include'], true);
@@ -226,26 +244,16 @@ class CliRunner
 			exit(1);
 		});
 
-		if (extension_loaded('pcntl')) {
-			pcntl_signal(SIGINT, function (): void {
-				pcntl_signal(SIGINT, SIG_DFL);
-				throw new \Exception('Terminated');
-			});
-			pcntl_async_signals(true);
-
-		} elseif (function_exists('sapi_windows_set_ctrl_handler')) {
-			sapi_windows_set_ctrl_handler(function () {
-				throw new \Exception('Terminated');
-			});
-		}
+		$this->interruptHandler->register();
 	}
 
 
+	/** @return ?array<string, mixed> */
 	private function loadConfig(): ?array
 	{
-		$cmd = new CommandLine(
+		$cmd = new Parser(
 			<<<'XX'
-				FTP deployment v3.6 - Pavel Kutáč edit
+				FTP deployment v3.7 - Pavel Kutáč edit
 
 				See more on https://github.com/arxeiss/ftp-deployment
 				and original on https://github.com/dg/ftp-deployment
@@ -261,7 +269,7 @@ class CliRunner
 
 				XX,
 			[
-				'config' => [CommandLine::RealPath => true],
+				'config' => [Parser::RealPath => true],
 			],
 		);
 
@@ -281,9 +289,11 @@ class CliRunner
 			throw new \Exception('Missing config.');
 		}
 
-		if (!flock($this->lock = fopen($options['config'], 'r'), LOCK_EX | LOCK_NB)) {
+		$lock = fopen($options['config'], 'r');
+		if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
 			throw new \Exception('It seems that you are in the middle of another deployment.');
 		}
+		$this->lock = $lock;
 
 		$this->batches = isset($config['remote']) && is_string($config['remote'])
 			? ['' => $config]
@@ -300,16 +310,15 @@ class CliRunner
 		}
 
 		foreach ($this->batches as &$batch) {
-			$batch = array_change_key_case($batch, CASE_LOWER) + $this->defaults;
+			$batch = array_change_key_case($batch) + $this->defaults;
 		}
 
-		$config = array_change_key_case($config, CASE_LOWER) + [
+		$config = array_change_key_case($config) + [
 			'log' => preg_replace('#\.\w+$#', '.log', $this->configFile),
 			'fullclilog' => [],
 			'tempdir' => sys_get_temp_dir() . '/deployment',
-			'progress' => true,
-			'colors' => (PHP_SAPI === 'cli' && ((function_exists('posix_isatty') && posix_isatty(STDOUT))
-				|| getenv('ConEmuANSI') === 'ON' || getenv('ANSICON') !== false)),
+			'progress' => Console::detectTerminal(),
+			'colors' => Console::detectColors(),
 		];
 		$config['progress'] = $options['--no-progress'] ? false : $config['progress'];
 		if (is_string($config['fullclilog'])) {
@@ -321,20 +330,26 @@ class CliRunner
 	}
 
 
+	/** @return array<string, mixed> */
 	protected function loadConfigFile(string $file): array
 	{
 		if (pathinfo($file, PATHINFO_EXTENSION) == 'php') {
 			return include $file;
 		} else {
-			return parse_ini_file($file, true);
+			return parse_ini_file($file, true)
+				?: throw new \Exception("Unable to parse config file '$file'.");
 		}
 	}
 
 
-	public static function toArray($val, bool $lines = false): array
+	/**
+	 * @param  string|list<string>  $val
+	 * @return list<string>
+	 */
+	public static function toArray(mixed $val, bool $lines = false): array
 	{
 		return is_array($val)
-			? array_filter($val)
+			? array_values(array_filter($val))
 			: preg_split($lines ? '#\s*\n\s*#' : '#\s+#', $val, -1, PREG_SPLIT_NO_EMPTY);
 	}
 }

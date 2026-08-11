@@ -11,9 +11,14 @@ if (ini_get("phar.readonly") != 0) {
     die("Cannot change phar.readonly mode - change it in 'php.ini' file".PHP_EOL);
 }
 
-include 'src/Deployment/CommandLine.php';
+if (is_file(__DIR__ . '/../vendor/autoload.php')) {
+	require __DIR__ . '/../vendor/autoload.php';
 
-$cmd = new Deployment\CommandLine(<<<'XX'
+} elseif (is_file(__DIR__ . '/../../../autoload.php')) {
+	require __DIR__ . '/../../../autoload.php';
+}
+
+$cmd = new Nette\CommandLine\Parser(<<<'XX'
 
 Build of custom FTP Deployment
 -------------------
