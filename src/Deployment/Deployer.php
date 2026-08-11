@@ -117,15 +117,16 @@ class Deployer
 		$localPaths = &$cache[serialize([$this->localDir, $this->ignoreMasks, $this->includeMasks, array_keys($this->filters), $this->preprocessMasks])];
 		if ($localPaths === null) {
 			$localPaths = $this->collectPaths();
+			ksort($localPaths);
 		}
 
+		ksort($remotePaths);
 		unset($localPaths["/$this->deploymentFile"], $remotePaths["/$this->deploymentFile"]);
 		$toDelete = $this->allowDelete ? array_keys(array_diff_key($remotePaths, $localPaths)) : [];
 		$toUpload = array_keys(array_diff_assoc($localPaths, $remotePaths));
 
 		if ($localPaths !== $remotePaths) { // ignores allowDelete
 			$deploymentFile = $this->writeDeploymentFile($localPaths + $ignoredRemoteTracked);
-			$toUpload[] = "/$this->deploymentFile"; // must be last
 		}
 
 		if (!$toUpload && !$toDelete && !isset($deploymentFile)) {
@@ -162,16 +163,11 @@ class Deployer
 			$skippedPaths = [];
 			if ($toUpload) {
 				$this->logger->log("\nUploading:");
-				$this->uploadPaths($toUpload, $tempFiles);
-				// $skippedPaths = $this->uploadPaths($toUpload, $tempFiles);
-				// $toUpload = array_values(array_diff($toUpload, $skippedPaths));
+				$skippedPaths = $this->uploadPaths($toUpload, $tempFiles);
+				$toUpload = array_values(array_diff($toUpload, $skippedPaths));
 			}
-			if($toUpload || $this->alwaysRunActions){
-				$this->runAfterUploadJobs();
-			}
-
 			if (isset($deploymentFile)) {
-				$adjustedPaths = $localPaths;
+				$adjustedPaths = $localPaths + $ignoredRemoteTracked;
 				$this->revertSkippedPaths($adjustedPaths, $skippedPaths, $remotePaths);
 				$deploymentFile = $this->writeDeploymentFile($adjustedPaths);
 				$toUpload[] = "/$this->deploymentFile";
@@ -182,9 +178,8 @@ class Deployer
 				);
 			}
 
-			if ($this->runAfterUpload) {
-				$this->logger->log("\nAfter-upload-jobs:");
-				$this->runJobs($this->runAfterUpload);
+			if ($toUpload || $this->alwaysRunActions) {
+				$this->runAfterUploadJobs();
 			}
 
 			$this->logger->log("Creating remote file $this->deploymentFile.running");
@@ -257,6 +252,10 @@ class Deployer
 	}
 
 
+	/**
+	 * @param  array<int, string>  $toUpload
+	 * @param  array<int, string>  $toDelete
+	 */
 	private function handleFileOutputMode(array $toUpload, array $toDelete): void
 	{
 		// OptimizedFolders array contains only folders wihtout files
@@ -322,7 +321,8 @@ class Deployer
 	/**
 	 * Run after-upload jobs
 	 */
-	private function runAfterUploadJobs(){
+	private function runAfterUploadJobs(): void
+	{
 		if ($this->runAfterUpload) {
 			$this->logger->log("\nAfter-upload-jobs:");
 			$this->runJobs($this->runAfterUpload);
@@ -560,10 +560,10 @@ class Deployer
 	/**
 	 * Filter in place all paths that are in ignoreTrackedMasks
 	 *
-	 * @param  array &$remotePaths All remote paths to be filtered in place, array is changing
-	 * @return array               All filtered paths
+	 * @param  array<string, string|true> &$remotePaths All remote paths to be filtered in place, array is changing
+	 * @return array<string, string|true>               All filtered paths
 	 */
-	private function inPlaceFilterRemotePaths(&$remotePaths)
+	private function inPlaceFilterRemotePaths(array &$remotePaths): array
 	{
 		$ignoringTracked = [];
 		if (empty($this->ignoreTrackedMasks)) {
@@ -598,7 +598,9 @@ class Deployer
 		}
 
 		foreach ($this->filters[$ext] as $info) {
-			$callable_name = is_array($info['filter']) ? implode('::', $info['filter']) : '';
+			$callable_name = is_array($info['filter'])
+				? (is_object($info['filter'][0]) ? get_class($info['filter'][0]) : $info['filter'][0]) . '::' . $info['filter'][1]
+				: '';
 			$cacheFile = $info['cached']
 				? $this->tempDir . '/' . md5($content . $callable_name)
 				: null;

@@ -17,7 +17,7 @@ class Logger
 	public bool $useColors = false;
 	public bool $showProgress = true;
 
-	/** @var array */
+	/** @var array<string> */
 	public $fullCliLog = [];
 
 	/** @var resource */
@@ -51,7 +51,7 @@ class Logger
 	}
 
 
-	public function log(string $s, ?string $color = null, int $shorten = 1): void
+	public function log(string $s, ?string $color = null, ?int $shorten = null): void
 	{
 		fwrite($this->file, $s . "\n");
 

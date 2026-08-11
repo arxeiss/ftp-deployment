@@ -93,7 +93,7 @@ class CliRunner
 
 			if ($deployment->testMode) {
 				$this->logger->log('Test mode', 'lime');
-			} else if($deployment->fileOutputDir) {
+			} elseif ($deployment->fileOutputDir) {
 				$this->logger->log('File Output mode', 'teal');
 			} else {
 				$this->logger->log('Live mode', 'aqua');
@@ -102,7 +102,7 @@ class CliRunner
 				$this->logger->log('Deleting disabled');
 			}
 
-			try{
+			try {
 				$deployment->deploy();
 			} catch (JobException | ServerException $e) {
 				$this->logger->log("Error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n\n$e", 'red');
@@ -143,7 +143,7 @@ class CliRunner
 			throw new \Exception("Missing or invalid 'remote' URL in config.");
 		}
 		if (!empty($config['fileoutputdir'])) {
-			if (!preg_match('#/|\\\\|[a-z]:#iA', $config['fileoutputdir'])) {
+			if (!preg_match('#/|\\\|[a-z]:#iA', $config['fileoutputdir'])) {
 				$config['fileoutputdir'] = dirname($this->configFile) . '/' . $config['fileoutputdir'];
 			}
 			$realFileOutputDir = realpath($config['fileoutputdir']);
@@ -207,7 +207,7 @@ class CliRunner
 			: $config['deploymentfile'];
 
 		$deployment->allowDelete = (bool) $config['allowdelete'];
-		$deployment->alwaysRunActions = (bool)$config['alwaysrunactions'];
+		$deployment->alwaysRunActions = (bool) $config['alwaysrunactions'];
 
 		$deployment->toPurge = self::toArray($config['purge'], true);
 		$deployment->runBefore = self::toArray($config['before'], true);
